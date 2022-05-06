@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: movie-src-sv
+  namespace: movie
+  labels:
+    app: movie-src
+spec:
+  type: NodePort
+  ports:
+  - port: 5000
+    nodePort: 30100
+  selector:
+    app: movie-src
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: movie-src-sf
+  namespace: movie
+spec:
+  selector:
+    matchLabels:
+      app: movie-src
+  serviceName: "movie-src-sv"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: movie-src
+    spec:
+      containers:
+      - name: movie-src
+        image: skanddi/movie-src:1.0
+        ports:
+        - containerPort: 80
+          name: web
+      nodeSelector:
+        app: movie
+  volumeClaimTemplates:
+  - metadata:
+      name: app
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "rook-ceph-block"
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: movie-db-sv
+  namespace: movie
+  labels:
+    app: movie-db
+spec:
+  type: NodePort
+  ports:
+  - port: 5000
+    nodePort: 30200
+  selector:
+    app: movie-db
+
+---
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: movie-db-sf
+  namespace: movie
+spec:
+  selector:
+    matchLabels:
+      app: movie-db
+  serviceName: "movie-db-sv"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: movie-db
+    spec:
+      containers:
+      - name: movie-db
+        image: skanddi/movie-db:1.0
+        ports:
+        - containerPort: 80
+          name: web
+      nodeSelector:
+        app: movie
+  volumeClaimTemplates:
+  - metadata:
+      name: app
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "rook-ceph-block"
+      resources:
+        requests:
+          storage: 10Gi
